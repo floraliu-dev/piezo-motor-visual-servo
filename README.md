@@ -1,371 +1,91 @@
-# 整合式攝影機追蹤與函數產生器控制系統
+<div align="center">
 
-多執行緒架構的高效能攝影機追蹤系統，整合函數產生器控制功能。
+# Visual Servo Control for a Piezoelectric Ultrasonic Motor
 
-## 📋 功能特點
+A 120 FPS camera tracks the motor. A Keysight 33600A function generator drives it, and a PID loop closes the gap between them.
 
-### 核心功能
-- 🎥 **高速相機追蹤** - 支援 120 FPS @ 640x480 解析度
-- 🧵 **多執行緒架構** - 分離讀取、處理和顯示執行緒以提升效能
-- 🔒 **執行緒安全設計** - 共享狀態使用 Lock 保護，確保資料一致性
-- 🎛️ **函數產生器控制** - 支援 4 種波形模式快速切換
-- 🤖 **智能 PID 控制** - 自動姿態校正與軌跡控制
-- 📊 **即時資料分析** - 位置、速度、角度即時追蹤
-- 💾 **自動資料匯出** - CSV 資料和多種視覺化圖表
+**English** · [繁體中文](README.zh-TW.md)
 
-### 追蹤功能
-- Kalman 濾波器平滑追蹤
-- 指數移動平均 (EMA) 降低抖動
-- 自動尺度校準（支援網格或 device 尺寸）
-- 支援 straight 和 rotation 兩種追蹤模式
-- **鏡頭畸變校正** - 廣角鏡頭邊緣扭曲補償（支援 TPS 和傳統校正）
+<img src="docs/demo-straight.gif" height="260" alt="Straight run with live overlay">
+<img src="docs/demo-rotation.gif" height="260" alt="Rotation run with live overlay">
 
-### PID 控制功能
-- **Straight Mode 智能校正** - 偵測角度偏移，自動切換旋轉模式校正姿態
-- **Rotation Mode 控制** - 旋轉到指定角度後自動停止
-- **電壓差動校正** - 根據橫向偏移自動調整兩通道電壓
+</div>
 
-### 視覺化輸出
-- 位置軌跡圖
-- 速度/角度時間序列圖
-- 軌跡輪廓圖（8 個時間點）
-- 8 時間點組合影像
+## Highlights
 
-## 📁 專案結構
+- Tracks at **120 FPS** using three threads (capture, process, display), with a per-frame processing P99 of **3.6 ms** against an 8.3 ms budget
+- Switches drive modes in **under 2 ms** with compound SCPI commands, more than 600x faster than re-uploading the waveforms
+- Uses **PID heading control** to hold a straight line or stop at a target angle
+- Applies **TPS lens undistortion**, so positions stay accurate out to the edges of a wide-angle lens
+- Exports a tracked video, a raw video, a CSV and plots for every run
 
-```
-camera_function_generator_multithreaded/
-├── main.py                    # 主程式入口
-├── config.py                  # 配置管理（含電壓設定）
-├── stats.py                   # 執行緒安全的統計模組
-├── thread_safe_state.py       # 執行緒安全的共享狀態模組
-├── function_generator.py      # 函數產生器控制
-├── pid_controller.py          # PID 控制器（智能姿態校正）
-├── image_processing.py        # 影像處理與目標檢測
-├── signal_processing.py       # 訊號處理與濾波
-├── camera_threads.py          # 多執行緒相機控制
-├── data_export.py             # 資料匯出與視覺化
-├── undistort.py               # 鏡頭畸變校正模組
-├── modal/                     # 波形檔案目錄
-│   ├── ONEPERIOD_A_*.csv
-│   ├── ONEPERIOD_B_*.csv
-│   ├── ONEPERIOD_C_*.csv
-│   └── ONEPERIOD_D_*.csv
-├── calibration/               # 相機校正資料
-│   ├── tps_rectification_map.npz  # TPS 校正映射表
-│   ├── calibration.py         # 校正程式
-│   └── chest image/           # 校正用棋盤格圖片
-├── README.md                  # 本檔案
-└── requirements.txt           # Python 依賴套件
+## How it works
+
+```mermaid
+flowchart LR
+    subgraph T1[Capture thread]
+        A[Camera 640x480 MJPG]
+    end
+    subgraph T2[Process thread]
+        B[Undistort] --> C[HSV mask + minAreaRect] --> D[Kalman + EMA]
+    end
+    subgraph T3[Main thread]
+        E[Display + record] --> F[PID]
+    end
+    A -- frame_queue --> B
+    D -- result_queue --> E
+    F -- SCPI --> G[Keysight 33600A] -- drives --> H[Motor]
+    H -. seen by .-> A
 ```
 
-## 🚀 快速開始
+## Quick start
 
-### 環境需求
-
-- Python 3.7+
-- Windows 10/11（使用 DirectShow 支援）
-- 相機（支援 MJPG 格式）
-- （可選）Keysight 33600 系列函數產生器
-
-### 安裝步驟
-
-1. **克隆專案**
-```bash
-git clone <repository-url>
-cd camera_function_generator_multithreaded
-```
-
-2. **安裝依賴套件**
 ```bash
 pip install -r requirements.txt
-```
-
-3. **配置系統**
-
-編輯 `config.py` 調整以下參數：
-
-```python
-# 相機設定
-CAMERA_INDEX = 1              # 相機索引
-MODE = "straight"             # 追蹤模式："straight" 或 "rotation"
-
-# 函數產生器設定
-FG_RESOURCE_STRING = 'USB0::0x0957::0x5707::MY59001615::0::INSTR'
-
-# 電壓設定（可在 FG_MODE_CONFIGS 中調整各模式的電壓）
-# 預設：1.2V
-```
-
-### 執行程式
-
-```bash
 python main.py
 ```
 
-## 🎮 操作說明
+Before you run it, set `CAMERA_INDEX`, `MODE` (`straight` / `rotation`) and `FG_RESOURCE_STRING` in `config.py`. All other parameters are documented in the same file.
 
-### 鍵盤控制
+| Key | Action |
+|---|---|
+| `Space` | Start / stop recording |
+| `1` / `2` / `3` / `4` | Forward / Right / Backward / Left |
+| `0` | Output off |
+| `Q` / `Esc` | Quit and save |
 
-#### 攝影機控制
-- `Space` - 開始/停止錄製
-- `ESC` 或 `Q` - 退出程式
-
-#### 函數產生器控制
-- `1` - Mode 1 (25k Hz, CH1=NORM, CH2=INV)
-- `2` - Mode 2 (47k Hz, CH1=NORM, CH2=INV)
-- `3` - Mode 3 (25k Hz, CH1=INV, CH2=NORM)
-- `4` - Mode 4 (47k Hz, CH1=INV, CH2=NORM)
-- `0` - 關閉函數產生器輸出
-
-#### PID 控制（需啟用 ENABLE_PID_CONTROL）
-- `P` - 切換 PID 控制開關
-
-#### 其他
-- `H` - 顯示幫助訊息
-
-## ⚙️ 配置說明
-
-### 主要配置參數 (config.py)
-
-#### 攝影機參數
-```python
-MODE = "straight"              # 追蹤模式
-CAMERA_INDEX = 1               # 相機索引
-CAM_WIDTH = 640                # 解析度寬度
-CAM_HEIGHT = 480               # 解析度高度
-CAM_FPS_REQ = 120              # 目標 FPS
-```
-
-#### 追蹤參數
-```python
-# Kalman 濾波器
-KF_PROCESS_NOISE = 1e-5        # 過程噪音
-KF_MEASURE_NOISE = 1e-2        # 測量噪音
-
-# EMA 平滑
-EMA_ALPHA_POS = 0.25           # 位置平滑係數
-EMA_ALPHA_ANGLE = 0.20         # 角度平滑係數
-```
-
-#### 顏色遮罩參數 (HSV)
-```python
-HSV_YELLOW_LO = [15, 60, 120]  # 黃色下界
-HSV_YELLOW_HI = [35, 255, 255] # 黃色上界
-HSV_WHITE_LO = [0, 0, 200]     # 白色下界
-HSV_WHITE_HI = [180, 60, 255]  # 白色上界
-```
-
-#### 函數產生器電壓設定
-```python
-FG_MODE_CONFIGS = {
-    1: {
-        'ch1_volt': 1.2,  # Channel 1 電壓 (V)
-        'ch2_volt': 1.2,  # Channel 2 電壓 (V)
-        # ... 其他設定
-    },
-    # 模式 2-4 同理
-}
-```
-
-#### PID 控制參數
-```python
-ENABLE_PID_CONTROL = True      # 啟用 PID 控制
-
-# Straight Mode 智能校正
-ANGLE_CORRECTION_THRESHOLD = 10.0  # 角度偏移閾值（度）
-ANGLE_CORRECTION_TOLERANCE = 2.0   # 校正容差（度）
-STRAIGHT_PID_KP = 0.03             # 電壓調整比例增益
-STRAIGHT_DEADBAND = 0.3            # 死區（mm）
-
-# Rotation Mode 控制
-ROTATION_TARGET_ANGLE = 90.0       # 目標旋轉角度（度）
-ROTATION_ANGLE_TOLERANCE = 2.0     # 角度容差（度）
-```
-
-## 📊 輸出資料
-
-### 檔案結構
-
-每次錄製會產生一個帶時間戳的資料夾：
+<details>
+<summary>Output files</summary>
 
 ```
-YYYYMMDD_HHMMSS_<mode>_integrated_mt/
-├── camera_<mode>_tracked.avi              # 追蹤影片（含標註）
-├── camera_<mode>_raw.avi                  # 原始影片（無標註）
-├── camera_<mode>_pos_angle_speed.csv      # 追蹤資料 CSV
-├── camera_<mode>_position.png             # 位置軌跡圖
-├── camera_<mode>_speed_orientation.png    # 速度與角度圖（straight 模式）
-├── camera_<mode>_angular_speed.png        # 角速度圖（rotation 模式）
-├── camera_<mode>_trajectory_center_only.png  # 軌跡輪廓圖
-└── camera_<mode>_8_timepoints_composite.png  # 8 時間點組圖
+YYYYMMDD_HHMMSS_<mode>_<voltage>/
+├── camera_<mode>_tracked.mp4        # annotated video
+├── camera_<mode>_raw.mp4            # raw video
+├── camera_<mode>_pos_angle_speed.csv
+├── camera_<mode>_position.png
+└── camera_<mode>composite.png       # 8 time points in one image
 ```
 
-### CSV 資料欄位
+CSV columns: `t_s`, `x_mm`, `y_mm`, `angle_deg_unwrapped`, `speed_mm_s`, `angular_vel_dps` and more.
+</details>
 
-- `frame` - 幀編號
-- `t_s` - 時間（秒）
-- `x_px_filt`, `y_px_filt` - 濾波後位置（pixels）
-- `x_mm_abs`, `y_mm_abs` - 絕對位置（mm）
-- `x_mm`, `y_mm` - 相對位置（mm）
-- `angle_deg_raw` - 原始角度（度）
-- `angle_deg_unwrapped` - 解包裹角度（度）
-- `vx_mm_s`, `vy_mm_s` - 速度分量（mm/s）
-- `speed_mm_s` - 速度大小（mm/s）
-- `angular_vel_dps` - 角速度（deg/s）
+## Results
 
-## 🔧 進階功能
+With heading control, the motor goes straight. Without it, the motor drifts about 10°.
 
-### 尺度校準
+<img src="data%20analysis%20(straight)/control%20%26%20without%20control%20comparison/position_comparison.png" width="480" alt="Trajectory with and without control">
 
-系統支援兩種自動校準方法：
+For the full latency and throughput tests, see [`benchmarks/benchmark_summary_report.txt`](benchmarks/benchmark_summary_report.txt).
 
-1. **網格檢測** - 檢測背景的 5mm 網格
-2. **Device 尺寸** - 使用已知的 device 尺寸（9mm × 6mm）
+## Project structure
 
-如果自動校準失敗，系統會使用預設值 0.1 mm/pixel。
-
-### 手動校準
-
-在 `config.py` 中設定：
-
-```python
-AUTO_GRID_MM_PER_PX = False
-MANUAL_MM_PER_PX = 0.08  # 手動設定值
-```
-
-### 鏡頭畸變校正
-
-廣角鏡頭通常會有邊緣扭曲的問題，本系統內建畸變校正功能。
-
-#### 配置選項
-
-在 `config.py` 中：
-
-```python
-ENABLE_UNDISTORT = True                           # 啟用/停用畸變校正
-CALIBRATION_DATA_PATH = "calibration/calibration_data.npz"  # 校正數據路徑
-UNDISTORT_CROP = False                            # 是否裁剪校正後的黑邊
-```
-
-#### 重新校正相機
-
-如果需要重新校正相機（例如更換鏡頭），請執行：
-
-```bash
-cd calibration
-python camera_calibration_optimized.py
-```
-
-校正步驟：
-1. 準備一張棋盤格校正板
-2. 拍攝 20-40 張不同角度的棋盤格圖片，放入 `calibration/chest image/` 資料夾
-3. 執行校正程式，程式會自動：
-   - 檢測棋盤格角點
-   - 計算相機內參矩陣和畸變係數
-   - 剔除高誤差圖片以優化結果
-   - 儲存校正參數到 `calibration_data.npz`
-
-#### 校正參數說明
-
-- **相機內參矩陣 (mtx)**: 包含焦距 (fx, fy) 和主點 (cx, cy)
-- **畸變係數 (dist)**: 包含徑向畸變 (k1, k2, k3) 和切向畸變 (p1, p2)
-- **重投影誤差**: 衡量校正精度，一般 < 0.5 為良好
-
-## 🐛 常見問題
-
-### Q: 無法連接相機
-**A:** 
-1. 確認相機索引是否正確（通常為 0 或 1）
-2. 檢查相機是否支援 MJPG 格式
-3. 確認沒有其他程式佔用相機
-
-### Q: FPS 太低
-**A:**
-1. 降低解析度（例如改為 320x240）
-2. 確認使用 MJPG 格式
-3. 檢查 CPU 負載是否過高
-
-### Q: 函數產生器連接失敗
-**A:**
-1. 確認已安裝 PyVISA 和相關驅動
-2. 檢查 `FG_RESOURCE_STRING` 是否正確
-3. 確認 USB 連接正常
-
-### Q: 追蹤不穩定
-**A:**
-1. 調整顏色遮罩參數（HSV 範圍）
-2. 增加 EMA 平滑係數
-3. 調整 Kalman 濾波器參數
-4. 確保光照條件良好
-
-## 📝 開發指南
-
-### 模組說明
-
-| 模組 | 功能 |
-|------|------|
-| **main.py** | 程式流程控制與主迴圈 |
-| **config.py** | 集中管理所有配置參數 |
-| **stats.py** | 執行緒安全的效能統計 |
-| **thread_safe_state.py** | 執行緒安全的共享狀態（使用 Lock 保護） |
-| **function_generator.py** | Keysight 33600 系列函數產生器控制 |
-| **pid_controller.py** | PID 控制器（Straight/Rotation 模式） |
-| **image_processing.py** | 目標檢測與尺度校準 |
-| **signal_processing.py** | Kalman 濾波、EMA、角度處理 |
-| **camera_threads.py** | 多執行緒相機讀取與處理 |
-| **data_export.py** | 資料處理和圖表生成 |
-| **undistort.py** | 鏡頭畸變校正（支援 TPS 和傳統校正） |
-
-### 執行緒架構
-
-```
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  Capture Thread  │────▶│  Process Thread  │────▶│   Main Thread    │
-│                  │     │                  │     │                  │
-│  • 讀取相機幀     │     │  • 畸變校正       │     │  • GUI 顯示      │
-│  • 放入佇列       │     │  • 目標檢測       │     │  • 錄影控制      │
-│                  │     │  • Kalman 濾波    │     │  • PID 控制      │
-└──────────────────┘     └──────────────────┘     └──────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-    frame_queue              result_queue          tracker_state
-   (執行緒安全)              (執行緒安全)          (ThreadSafeState)
-```
-
-### 擴展建議
-
-1. **新增追蹤模式** - 在 `config.py` 修改 `MODE` 並在相應模組新增邏輯
-2. **自訂視覺化** - 修改 `data_export.py` 中的圖表生成函數
-3. **調整濾波參數** - 在 `config.py` 微調追蹤參數
-4. **新增函數產生器模式** - 在 `config.py` 的 `FG_MODE_CONFIGS` 新增模式
-
-## 📄 授權
-
-本專案採用 MIT 授權。
-
-## 🤝 貢獻
-
-歡迎提交 Issue 和 Pull Request！
-
-## 📮 聯絡方式
-
-如有問題或建議，請透過 Issue 聯繫我們。
-
----
-
-**版本**: 2.1.0 (執行緒安全強化版)  
-**最後更新**: 2026-01-02
-
-### 更新日誌
-
-#### v2.1.0 (2026-01-02)
-- ✨ 新增 `thread_safe_state.py` 模組，強化執行緒安全性
-- ✨ 新增 `pid_controller.py` 智能 PID 控制模組
-- 🔧 `tracker_state` 改用 `ThreadSafeState` 類別，避免資料競爭
-- 📝 更新 README 文件
-
-#### v2.0.0 (2025-12-07)
-- 🎉 模組化重構版本
-- 🧵 多執行緒架構
-- 📷 鏡頭畸變校正功能
+| Path | Contents |
+|---|---|
+| `main.py` | Entry point and main loop |
+| `config.py` | All tunable parameters |
+| `camera_threads.py` | Capture and process threads |
+| `image_processing.py` · `signal_processing.py` | Detection, Kalman filter, EMA |
+| `function_generator.py` · `pid_controller.py` | SCPI control and PID |
+| `calibration/` | TPS undistortion map and tools |
+| `benchmarks/` | Latency and throughput tests |
+| `experiment_*/` · `data analysis (*)/` | Recorded runs and analysis |
