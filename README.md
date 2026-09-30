@@ -91,6 +91,14 @@ For the full latency and throughput tests, see [`benchmarks/benchmark_summary_re
 | `benchmarks/` | Latency and throughput tests |
 | `experiment_*/` · `data analysis (*)/` | Recorded runs and analysis |
 
+## Related repos
+
+| Repo | Role |
+|---|---|
+| [Keysight-33600A-SCPI-programming](https://github.com/liu092111/Keysight-33600A-SCPI-programming) | Standalone SCPI waveform controller and Teensy firmware |
+| [AD9106_SRAM-function](https://github.com/liu092111/AD9106_SRAM-function) | Teensy driver for the AD9106 DAC, a compact drive option |
+
+
 </details>
 
 <details>
@@ -176,5 +184,12 @@ CSV 欄位包含 `t_s`、`x_mm`、`y_mm`、`angle_deg_unwrapped`、`speed_mm_s`�
 | `calibration/` | TPS 校正映射表與工具 |
 | `benchmarks/` | 延遲與吞吐量測試 |
 | `experiment_*/` · `data analysis (*)/` | 實驗紀錄與分析 |
+
+## 相關 repo
+
+| Repo | 角色 |
+|---|---|
+| [Keysight-33600A-SCPI-programming](https://github.com/liu092111/Keysight-33600A-SCPI-programming) | 獨立的 SCPI 波形控制器與 Teensy 韌體 |
+| [AD9106_SRAM-function](https://github.com/liu092111/AD9106_SRAM-function) | AD9106 DAC 的 Teensy 驅動程式，是更精簡的驅動方案 |
 
 </details>
