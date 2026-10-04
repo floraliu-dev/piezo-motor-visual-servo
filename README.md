@@ -4,6 +4,8 @@
 
 A 120 FPS camera tracks the motor. A Keysight 33600A function generator drives it, and a PID loop closes the gap between them.
 
+[Project page on floraliu.dev](https://floraliu.dev/work/piezo-motor)
+
 <img src="docs/demo-straight.gif" height="260" alt="Straight run with live overlay">
 <img src="docs/demo-rotation.gif" height="260" alt="Rotation run with live overlay">
 
