@@ -97,8 +97,8 @@ For the full latency and throughput tests, see [`benchmarks/benchmark_summary_re
 
 | Repo | Role |
 |---|---|
-| [Keysight-33600A-SCPI-programming](https://github.com/liu092111/Keysight-33600A-SCPI-programming) | Standalone SCPI waveform controller and Teensy firmware |
-| [AD9106_SRAM-function](https://github.com/liu092111/AD9106_SRAM-function) | Teensy driver for the AD9106 DAC, a compact drive option |
+| [Keysight-33600A-SCPI-programming](https://github.com/floraliu-dev/Keysight-33600A-SCPI-programming) | Standalone SCPI waveform controller and Teensy firmware |
+| [AD9106_SRAM-function](https://github.com/floraliu-dev/AD9106_SRAM-function) | Teensy driver for the AD9106 DAC, a compact drive option |
 
 
 </details>
@@ -191,7 +191,7 @@ CSV 欄位包含 `t_s`、`x_mm`、`y_mm`、`angle_deg_unwrapped`、`speed_mm_s`�
 
 | Repo | 角色 |
 |---|---|
-| [Keysight-33600A-SCPI-programming](https://github.com/liu092111/Keysight-33600A-SCPI-programming) | 獨立的 SCPI 波形控制器與 Teensy 韌體 |
-| [AD9106_SRAM-function](https://github.com/liu092111/AD9106_SRAM-function) | AD9106 DAC 的 Teensy 驅動程式，是更精簡的驅動方案 |
+| [Keysight-33600A-SCPI-programming](https://github.com/floraliu-dev/Keysight-33600A-SCPI-programming) | 獨立的 SCPI 波形控制器與 Teensy 韌體 |
+| [AD9106_SRAM-function](https://github.com/floraliu-dev/AD9106_SRAM-function) | AD9106 DAC 的 Teensy 驅動程式，是更精簡的驅動方案 |
 
 </details>
