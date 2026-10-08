@@ -6,8 +6,14 @@ A 120 FPS camera tracks the motor. A Keysight 33600A function generator drives i
 
 [Project page on floraliu.dev](https://floraliu.dev/work/piezo-motor)
 
-<img src="docs/demo-straight.gif" height="260" alt="Straight run with live overlay">
-<img src="docs/demo-rotation.gif" height="260" alt="Rotation run with live overlay">
+<table>
+<tr>
+<td align="center"><img src="docs/without-control.gif" height="300" alt="Without control, the motor drifts off course"><br><sub><b>Without control</b> · 無控制</sub></td>
+<td align="center"><img src="docs/with-control.gif" height="300" alt="With PID heading control, the motor holds a straight line"><br><sub><b>With control</b> · 有控制</sub></td>
+</tr>
+</table>
+
+<sub>Same motor, +y direction at 50 Vpp, tracked live at 120 FPS.</sub>
 
 </div>
 
